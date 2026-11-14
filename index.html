@@ -195,7 +195,6 @@
             <div class="section-head reveal">
                 <h2 data-i18n="reviews_title">User Reviews</h2>
                 <p data-i18n="reviews_sub">What people say about TMR-Secure.</p>
-                <p class="review-role-disclaimer" data-i18n="role_disclaimer">Роли в имени указаны авторами и не проверены.</p>
             </div>
 
             <!-- Форма добавления отзыва -->
@@ -289,10 +288,6 @@
     };
     const REVIEW_DELETE_TOKENS_KEY = 'tmr_review_delete_tokens';
     const REVIEW_GROUP_ORDER = [
-        ['admin', 'group_admin'],
-        ['moderator', 'group_moderator'],
-        ['developer', 'group_developer'],
-        ['tester', 'group_tester'],
         ['feature', 'group_feature'],
         ['missing', 'group_missing'],
         ['bug', 'group_bug'],
@@ -307,18 +302,6 @@
             console.error('Не удалось прочитать токены удаления отзывов:', error);
             return {};
         }
-    }
-
-    function parseReviewName(rawName) {
-        const roleMatch = rawName.match(/\s*\{(админ|admin|модер(?:атор)?|moderator|разраб(?:отчик)?|developer|dev|тестировщик|tester|qa)\}\s*$/iu);
-        if (!roleMatch) return { name: rawName, role: null };
-
-        const roleName = roleMatch[1].toLocaleLowerCase();
-        const role = /^(админ|admin)$/iu.test(roleName) ? 'admin'
-            : /^(модер(?:атор)?|moderator)$/iu.test(roleName) ? 'moderator'
-                : /^(разраб(?:отчик)?|developer|dev)$/iu.test(roleName) ? 'developer'
-                    : 'tester';
-        return { name: rawName.slice(0, roleMatch.index).trim(), role };
     }
 
     function parseReviewText(rawText) {
@@ -469,9 +452,9 @@
             records.reverse().forEach(record => {
                 const rawName = String(record[FIELD_NAME_ID] || record.name || 'Аноним');
                 const rawText = String(record[FIELD_TEXT_ID] || record.text || '');
-                const { name, role } = parseReviewName(rawName);
+                const name = rawName;
                 const { category, text } = parseReviewText(rawText);
-                groups.get(role || category).push({ record, name, role, category, text });
+                groups.get(category).push({ record, name, category, text });
             });
 
             const deleteTokens = getReviewDeleteTokens();
@@ -486,11 +469,10 @@
                 heading.textContent = window.translations[titleKey] || key;
                 group.appendChild(heading);
 
-                items.forEach(({ record, name, role, category, text }) => {
+                items.forEach(({ record, name, category, text }) => {
                     const ratingVal = record[FIELD_RATING_ID] !== undefined ? record[FIELD_RATING_ID] : record.rating;
                     const rating = Math.min(5, Math.max(0, parseInt(ratingVal, 10) || 0));
                     const date = record[FIELD_DATE_ID] || record.date || '';
-                    const roleKey = role ? `role_${role}` : null;
                     const card = document.createElement('article');
                     card.className = 'review-card';
 
@@ -502,14 +484,6 @@
                     nameElement.className = 'review-name';
                     nameElement.textContent = name;
                     identity.appendChild(nameElement);
-
-                    if (role) {
-                        const badge = document.createElement('span');
-                        badge.className = `review-role review-role--${role}`;
-                        badge.textContent = window.translations[roleKey] || role;
-                        badge.title = window.translations.role_unverified || 'Role is self-declared and unverified';
-                        identity.appendChild(badge);
-                    }
 
                     if (category !== 'review') {
                         const categoryBadge = document.createElement('span');

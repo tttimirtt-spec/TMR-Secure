@@ -157,8 +157,7 @@ async function handle(request, env) {
             : 'review';
         const rating = Number(body.rating);
         const errors = {};
-        const displayName = name.replace(/\s*\{(админ|admin|модер(?:атор)?|moderator|разраб(?:отчик)?|developer|dev|тестировщик|tester|qa)\}\s*$/iu, '').trim();
-        if (!displayName || name.length > 60) errors.name = 'Укажите имя длиной не более 60 символов.';
+        if (!name || name.length > 60) errors.name = 'Укажите имя длиной не более 60 символов.';
         if (reviewText.length < 3 || reviewText.length > 1200) errors.text = 'Отзыв должен содержать от 3 до 1200 символов.';
         if (!Number.isInteger(rating) || rating < 1 || rating > 5) errors.rating = 'Выберите оценку от 1 до 5 звёзд.';
         if (Object.keys(errors).length) {
