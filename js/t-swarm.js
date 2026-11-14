@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const maskContext = mask.getContext('2d', { willReadFrequently: true });
         if (!maskContext) return;
 
-        const fontSize = Math.min(height * 0.79, width * 0.82);
+        const fontSize = Math.min(height * 0.94, width * 0.96);
         maskContext.fillStyle = '#fff';
         maskContext.font = `900 ${fontSize}px Arial, sans-serif`;
         maskContext.textAlign = 'center';
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const image = maskContext.getImageData(0, 0, mask.width, mask.height).data;
         const targets = [];
-        const step = Math.max(4, Math.round(width / 90));
+        const step = Math.max(2, Math.round(width / 150));
         for (let y = 0; y < mask.height; y += step) {
             for (let x = 0; x < mask.width; x += step) {
                 if (image[(y * mask.width + x) * 4 + 3] > 100) {
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const maxParticles = 460;
+        const maxParticles = 2200;
         const stride = Math.max(1, Math.ceil(targets.length / maxParticles));
         particles.length = 0;
         for (let index = 0; index < targets.length; index += stride) {
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 vx: 0,
                 vy: 0,
                 phase: Math.random() * Math.PI * 2,
-                size: 2 + Math.random() * 1.5
+                size: 1.8 + Math.random() * 1.2
             });
         }
 
@@ -120,10 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ? Math.max(0, 1 - Math.sqrt(nearestDistanceSquared) / glowRadius)
             : 0;
         const red = Math.round(164 + (255 - 164) * proximity);
-        const blue = Math.round(138 + (255 - 138) * proximity);
-        context.fillStyle = `rgb(${red}, 255, ${blue})`;
-        context.shadowColor = proximity > 0.05 ? '#fff' : '#39ff14';
-        context.shadowBlur = 10 + proximity * 24;
+        const green = Math.round(255 + (48 - 255) * proximity);
+        const blue = Math.round(138 + (48 - 138) * proximity);
+        context.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+        context.shadowColor = proximity > 0.05 ? '#ff3030' : '#39ff14';
+        context.shadowBlur = 6 + proximity * 22;
 
         for (const particle of particles) {
             const pulse = reducedMotion ? 0.72 : 0.5 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.22;
