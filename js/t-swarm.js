@@ -10,17 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const magneticButton = document.getElementById('downloadBtn');
     const pointer = { x: -1000, y: -1000, active: false };
     const particles = [];
-    const hueBucketCount = 60;
     const alphaBucketCount = 3;
     const drawBuckets = Array.from(
-        { length: hueBucketCount * alphaBucketCount },
+        { length: alphaBucketCount },
         () => []
     );
-    const hueStyles = Array.from(
-        { length: hueBucketCount },
-        (_, index) => `hsl(${index * 6}, 100%, 66%)`
-    );
     const alphaLevels = [0.82, 0.91, 1];
+    const particleColor = '#c2ff76';
     let width = 0;
     let height = 0;
     let frame = 0;
@@ -74,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 vx: 0,
                 vy: 0,
                 phase: Math.random() * Math.PI * 2,
-                hueOffset: Math.random() * 360,
                 size: 0.7 + Math.random() * 0.55
             });
         }
@@ -95,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const radiusSquared = radius * radius;
         const glowRadius = Math.max(70, width * 0.22);
         const glowRadiusSquared = glowRadius * glowRadius;
-        const colorShift = reducedMotion ? 0 : time * 0.025;
         let nearestDistanceSquared = Infinity;
 
         for (const particle of particles) {
@@ -134,16 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const pointerBlend = pointer.active && distanceSquared < glowRadiusSquared
                 ? 1 - Math.sqrt(distanceSquared / glowRadiusSquared)
                 : 0;
-            const baseHue = (colorShift + particle.hueOffset) % 360;
-            const hue = baseHue * (1 - pointerBlend);
             const pulse = reducedMotion ? 0.95 : 0.82 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.09;
             const alpha = Math.min(1, pulse + pointerBlend * 0.1);
             const alphaIndex = Math.min(
                 alphaBucketCount - 1,
                 Math.round(((alpha - 0.82) / 0.18) * (alphaBucketCount - 1))
             );
-            const hueIndex = Math.round(hue / 6) % hueBucketCount;
-            drawBuckets[hueIndex * alphaBucketCount + alphaIndex].push(
+            drawBuckets[alphaIndex].push(
                 particle.x,
                 particle.y,
                 particle.size
@@ -153,29 +144,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const proximity = pointer.active && nearestDistanceSquared < glowRadiusSquared
             ? 1 - Math.sqrt(nearestDistanceSquared / glowRadiusSquared)
             : 0;
-        context.shadowColor = proximity > 0.05 ? '#ff102a' : 'rgba(86, 126, 255, 0.9)';
-        context.shadowBlur = 7 + proximity * 12;
+        context.shadowColor = proximity > 0.05 ? '#dcff9c' : '#9dff36';
+        context.shadowBlur = 12 + proximity * 10;
 
-        for (let hueIndex = 0; hueIndex < hueBucketCount; hueIndex++) {
-            context.fillStyle = hueStyles[hueIndex];
-            for (let alphaIndex = 0; alphaIndex < alphaBucketCount; alphaIndex++) {
-                const bucket = drawBuckets[hueIndex * alphaBucketCount + alphaIndex];
-                if (bucket.length === 0) continue;
+        context.fillStyle = particleColor;
+        for (let alphaIndex = 0; alphaIndex < alphaBucketCount; alphaIndex++) {
+            const bucket = drawBuckets[alphaIndex];
+            if (bucket.length === 0) continue;
 
-                context.globalAlpha = alphaLevels[alphaIndex];
-                context.beginPath();
-                for (let index = 0; index < bucket.length; index += 3) {
-                    context.moveTo(bucket[index] + bucket[index + 2], bucket[index + 1]);
-                    context.arc(
-                        bucket[index],
-                        bucket[index + 1],
-                        bucket[index + 2],
-                        0,
-                        Math.PI * 2
-                    );
-                }
-                context.fill();
+            context.globalAlpha = alphaLevels[alphaIndex];
+            context.beginPath();
+            for (let index = 0; index < bucket.length; index += 3) {
+                context.moveTo(bucket[index] + bucket[index + 2], bucket[index + 1]);
+                context.arc(
+                    bucket[index],
+                    bucket[index + 1],
+                    bucket[index + 2],
+                    0,
+                    Math.PI * 2
+                );
             }
+            context.fill();
         }
 
         context.restore();
