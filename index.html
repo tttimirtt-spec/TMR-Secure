@@ -202,7 +202,7 @@
                 <h3 data-i18n="review_form_title">Leave a review</h3>
                 <form id="reviewForm">
                     <div class="form-group">
-                        <input type="text" id="reviewName" required placeholder="Your name" data-i18n-placeholder="form_name">
+                        <input type="text" id="reviewName" required maxlength="60" placeholder="Your name" data-i18n-placeholder="form_name">
                     </div>
 
                     <div class="form-group">
@@ -217,7 +217,7 @@
                     </div>
 
                     <div class="form-group">
-                        <textarea id="reviewText" required rows="4" placeholder="Your review..." data-i18n-placeholder="form_text"></textarea>
+                        <textarea id="reviewText" required minlength="3" maxlength="1200" rows="4" placeholder="Your review..." data-i18n-placeholder="form_text"></textarea>
                     </div>
 
                     <button type="submit" class="btn btn-primary" id="submitReviewBtn" data-i18n="form_submit">Submit Review</button>
@@ -303,7 +303,10 @@
     async function incrementDownloadCount() {
         try {
             const response = await fetch(API_URL('/downloads'), { method: 'POST' });
-            if (!response.ok) throw new Error(`API returned ${response.status}`);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.details || error.error || `API returned ${response.status}`);
+            }
             const result = await response.json();
             const counterEl = document.getElementById('downloadCount');
             const newCount = Number(result.downloads);
@@ -384,7 +387,10 @@
 
         try {
             const resp = await fetch(API_URL('/reviews'));
-            if (!resp.ok) throw new Error(`API returned ${resp.status}`);
+            if (!resp.ok) {
+                const error = await resp.json();
+                throw new Error(error.details || error.error || `API returned ${resp.status}`);
+            }
             const data = await resp.json();
             const records = data.data?.records || [];
             if (records.length) {
@@ -464,8 +470,8 @@
             });
 
             if (!res.ok) {
-                const errorText = await res.text();
-                throw new Error(`Ошибка сервера: ${errorText}`);
+                const error = await res.json();
+                throw new Error(error.details || error.error || `Ошибка сервера: ${res.status}`);
             }
 
             document.getElementById('reviewForm').reset();

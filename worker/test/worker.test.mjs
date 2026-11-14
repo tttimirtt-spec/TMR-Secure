@@ -63,6 +63,7 @@ test('validates reviews and writes them using the detected Tabrica fields', asyn
         body: { name: '', text: 'review', rating: 5 }
     }), env);
     assert.equal(invalid.status, 400);
+    assert.match((await invalid.json()).details, /имя/i);
     assert.equal(calls.length, 0);
 
     const response = await worker.fetch(request('/reviews', {
@@ -77,6 +78,22 @@ test('validates reviews and writes them using the detected Tabrica fields', asyn
         '122': 5,
         '123': new Date().toLocaleDateString('de-DE', { timeZone: 'UTC' })
     });
+});
+
+test('reports missing Tabrica credentials without contacting the upstream API', async () => {
+    let upstreamCalled = false;
+    globalThis.fetch = async () => {
+        upstreamCalled = true;
+        throw new Error('unexpected upstream request');
+    };
+
+    const response = await worker.fetch(request('/reviews', { method: 'GET' }), {
+        ...env,
+        TABRICA_AUTHORIZATION: ''
+    });
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { error: 'Tabrica API is not configured' });
+    assert.equal(upstreamCalled, false);
 });
 
 test('increments the download count on the server', async () => {

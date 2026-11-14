@@ -67,6 +67,9 @@ async function handle(request, env) {
     }
 
     const path = new URL(request.url).pathname;
+    if (['/stats', '/downloads', '/reviews'].includes(path) && !env.TABRICA_AUTHORIZATION) {
+        return json({ error: 'Tabrica API is not configured' }, 503, env.SITE_ORIGIN);
+    }
     if (request.method === 'GET' && path === '/stats') {
         const upstream = await fetch(tableUrl(env, env.TABRICA_STATS_TABLE_ID), {
             headers: authorizationHeaders(env)
@@ -115,9 +118,12 @@ async function handle(request, env) {
         const name = typeof body.name === 'string' ? body.name.trim() : '';
         const text = typeof body.text === 'string' ? body.text.trim() : '';
         const rating = Number(body.rating);
-        if (!name || name.length > 60 || text.length < 3 || text.length > 1200 ||
-            !Number.isInteger(rating) || rating < 1 || rating > 5) {
-            return json({ error: 'Invalid review' }, 400, env.SITE_ORIGIN);
+        const errors = {};
+        if (!name || name.length > 60) errors.name = 'Укажите имя длиной не более 60 символов.';
+        if (text.length < 3 || text.length > 1200) errors.text = 'Отзыв должен содержать от 3 до 1200 символов.';
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) errors.rating = 'Выберите оценку от 1 до 5 звёзд.';
+        if (Object.keys(errors).length) {
+            return json({ error: 'Проверьте поля отзыва', details: Object.values(errors).join(' '), fields: errors }, 400, env.SITE_ORIGIN);
         }
 
         const fields = await getReviewFieldIds(env);
