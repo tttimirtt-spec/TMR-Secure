@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.height = Math.round(height * pixelRatio);
         context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-        const particleCount = 2400;
+        const particleCount = 2000;
         const armCount = 3;
         const particlesPerArm = 680;
         const shapeScale = Math.min(width, height);
