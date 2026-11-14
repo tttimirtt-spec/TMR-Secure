@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!context) return;
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const pointerFine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const magneticButton = document.getElementById('downloadBtn');
     const pointer = { x: -1000, y: -1000, active: false };
     const particles = [];
     let width = 0;
@@ -80,17 +82,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const pointerX = pointer.x;
         const pointerY = pointer.y;
         const radius = Math.max(64, width * 0.19);
+        let nearestDistanceSquared = Infinity;
 
         for (const particle of particles) {
-            const floatX = Math.sin(time * 0.0007 + particle.phase) * 3;
-            const floatY = Math.cos(time * 0.00055 + particle.phase) * 4;
+            const floatX = reducedMotion ? 0 : Math.sin(time * 0.0007 + particle.phase) * 3;
+            const floatY = reducedMotion ? 0 : Math.cos(time * 0.00055 + particle.phase) * 4;
             const targetX = particle.targetX + floatX;
             const targetY = particle.targetY + floatY;
 
             particle.vx += (targetX - particle.x) * 0.018 * delta;
             particle.vy += (targetY - particle.y) * 0.018 * delta;
 
-            if (pointer.active) {
+            if (pointer.active && !reducedMotion) {
                 const dx = particle.x - pointerX;
                 const dy = particle.y - pointerY;
                 const distance = Math.hypot(dx, dy);
@@ -105,10 +108,27 @@ document.addEventListener('DOMContentLoaded', () => {
             particle.vy *= 0.86;
             particle.x += particle.vx * delta;
             particle.y += particle.vy * delta;
+            if (pointer.active) {
+                const dx = particle.x - pointerX;
+                const dy = particle.y - pointerY;
+                nearestDistanceSquared = Math.min(nearestDistanceSquared, dx * dx + dy * dy);
+            }
+        }
 
-            context.globalAlpha = 0.5 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.22;
+        const glowRadius = Math.max(70, width * 0.22);
+        const proximity = pointer.active
+            ? Math.max(0, 1 - Math.sqrt(nearestDistanceSquared) / glowRadius)
+            : 0;
+        const red = Math.round(164 + (255 - 164) * proximity);
+        const blue = Math.round(138 + (255 - 138) * proximity);
+        context.fillStyle = `rgb(${red}, 255, ${blue})`;
+        context.shadowColor = proximity > 0.05 ? '#fff' : '#39ff14';
+        context.shadowBlur = 10 + proximity * 24;
+
+        for (const particle of particles) {
+            const pulse = reducedMotion ? 0.72 : 0.5 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.22;
+            context.globalAlpha = Math.min(1, pulse + proximity * 0.28);
             context.font = `700 ${particle.size}px Arial, sans-serif`;
-            context.fillStyle = '#a4ff8a';
             context.fillText('T', particle.x, particle.y);
         }
 
@@ -133,17 +153,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updatePointer(event) {
         const bounds = canvas.getBoundingClientRect();
-        pointer.active = event.clientX >= bounds.left && event.clientX <= bounds.right &&
-            event.clientY >= bounds.top && event.clientY <= bounds.bottom;
+        const margin = Math.max(70, width * 0.22);
+        pointer.active = event.clientX >= bounds.left - margin && event.clientX <= bounds.right + margin &&
+            event.clientY >= bounds.top - margin && event.clientY <= bounds.bottom + margin;
         pointer.x = event.clientX - bounds.left;
         pointer.y = event.clientY - bounds.top;
+
+        if (magneticButton && pointerFine && !reducedMotion) {
+            updateMagneticButton(event);
+        }
         if (!reducedMotion && visible) startAnimation();
+        if (reducedMotion) draw(0);
+    }
+
+    function updateMagneticButton(event) {
+        const bounds = magneticButton.getBoundingClientRect();
+        const closestX = Math.max(bounds.left, Math.min(event.clientX, bounds.right));
+        const closestY = Math.max(bounds.top, Math.min(event.clientY, bounds.bottom));
+        const distance = Math.hypot(event.clientX - closestX, event.clientY - closestY);
+        const range = 110;
+
+        if (distance >= range) {
+            magneticButton.classList.remove('is-magnetic');
+            return;
+        }
+
+        const centerX = bounds.left + bounds.width / 2;
+        const centerY = bounds.top + bounds.height / 2;
+        const dx = event.clientX - centerX;
+        const dy = event.clientY - centerY;
+        const strength = 1 - distance / range;
+        const easedStrength = strength * strength * (3 - 2 * strength);
+        const horizontalDirection = Math.max(-1, Math.min(1, dx / (bounds.width / 2)));
+        const verticalDirection = Math.max(-1, Math.min(1, dy / (bounds.height / 2)));
+
+        magneticButton.style.setProperty('--mag-x', `${horizontalDirection * 7 * easedStrength}px`);
+        magneticButton.style.setProperty('--mag-y', `${verticalDirection * 4 * easedStrength}px`);
+        magneticButton.style.setProperty('--mag-scale', `${1 + 0.2 * easedStrength}`);
+        magneticButton.style.setProperty('--mag-origin', dx >= 0 ? '0%' : '100%');
+        magneticButton.classList.add('is-magnetic');
     }
 
     window.addEventListener('pointermove', updatePointer, { passive: true });
     window.addEventListener('pointerdown', updatePointer, { passive: true });
     window.addEventListener('pointerout', event => {
-        if (!event.relatedTarget) pointer.active = false;
+        if (!event.relatedTarget) {
+            pointer.active = false;
+            if (magneticButton) magneticButton.classList.remove('is-magnetic');
+            if (reducedMotion) draw(0);
+        }
     });
     window.addEventListener('resize', resize, { passive: true });
 
