@@ -25,43 +25,44 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.height = Math.round(height * pixelRatio);
         context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-        const mask = document.createElement('canvas');
-        mask.width = Math.max(1, Math.round(width));
-        mask.height = Math.max(1, Math.round(height));
-        const maskContext = mask.getContext('2d', { willReadFrequently: true });
-        if (!maskContext) return;
-
-        const fontSize = Math.min(height * 0.94, width * 0.96);
-        maskContext.fillStyle = '#fff';
-        maskContext.font = `900 ${fontSize}px Arial, sans-serif`;
-        maskContext.textAlign = 'center';
-        maskContext.textBaseline = 'middle';
-        maskContext.fillText('T', width / 2, height / 2);
-
-        const image = maskContext.getImageData(0, 0, mask.width, mask.height).data;
-        const targets = [];
-        const step = Math.max(1, Math.round(width / 250));
-        for (let y = 0; y < mask.height; y += step) {
-            for (let x = 0; x < mask.width; x += step) {
-                if (image[(y * mask.width + x) * 4 + 3] > 100) {
-                    targets.push({ x, y });
-                }
-            }
-        }
-
-        const particleCount = Math.min(targets.length, 2400);
+        const particleCount = 2400;
+        const armCount = 3;
+        const particlesPerArm = 680;
+        const shapeScale = Math.min(width, height);
         particles.length = 0;
         for (let index = 0; index < particleCount; index++) {
-            const target = targets[Math.floor(index * targets.length / particleCount) % targets.length];
+            let targetX;
+            let targetY;
+            let hueOffset;
+
+            if (index < armCount * particlesPerArm) {
+                const arm = Math.floor(index / particlesPerArm);
+                const progress = (index % particlesPerArm) / (particlesPerArm - 1);
+                const angle = progress * Math.PI * 2.25 + arm * (Math.PI * 2 / armCount);
+                const radius = (0.055 + progress * 0.39) * shapeScale;
+                const spread = (Math.random() - 0.5) * (2 + progress * shapeScale * 0.045);
+                const radialJitter = (Math.random() - 0.5) * shapeScale * 0.018;
+                targetX = width / 2 + Math.cos(angle) * (radius + radialJitter) - Math.sin(angle) * spread;
+                targetY = height / 2 + Math.sin(angle) * (radius + radialJitter) + Math.cos(angle) * spread;
+                hueOffset = arm * 120 + progress * 80;
+            } else {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.sqrt(Math.random()) * shapeScale * 0.11;
+                targetX = width / 2 + Math.cos(angle) * radius;
+                targetY = height / 2 + Math.sin(angle) * radius;
+                hueOffset = Math.random() * 360;
+            }
+
             particles.push({
-                targetX: target.x,
-                targetY: target.y,
-                x: target.x,
-                y: target.y,
+                targetX,
+                targetY,
+                x: targetX,
+                y: targetY,
                 vx: 0,
                 vy: 0,
                 phase: Math.random() * Math.PI * 2,
-                size: 1.4 + Math.random() * 1.1
+                hueOffset,
+                size: 0.7 + Math.random() * 0.55
             });
         }
 
@@ -71,10 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function draw(time) {
         context.clearRect(0, 0, width, height);
         context.save();
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.shadowColor = '#39ff14';
-        context.shadowBlur = 16;
 
         const delta = Math.min((time - previousTime) / 16.67 || 1, 2);
         previousTime = time;
@@ -118,18 +115,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const proximity = pointer.active
             ? Math.max(0, 1 - Math.sqrt(nearestDistanceSquared) / glowRadius)
             : 0;
-        const red = Math.round(150 + (255 - 150) * proximity);
-        const green = Math.round(255 * (1 - proximity));
-        const blue = Math.round(72 * (1 - proximity));
-        context.fillStyle = `rgb(${red}, ${green}, ${blue})`;
-        context.shadowColor = proximity > 0.05 ? '#ff0000' : '#39ff14';
-        context.shadowBlur = 16 + proximity * 30;
+        const colorShift = reducedMotion ? 0 : time * 0.025;
+        context.shadowColor = proximity > 0.05 ? '#ff102a' : 'rgba(86, 126, 255, 0.9)';
+        context.shadowBlur = 7 + proximity * 12;
 
         for (const particle of particles) {
-            const pulse = reducedMotion ? 0.88 : 0.78 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.1;
-            context.globalAlpha = Math.min(1, pulse + proximity * 0.12);
-            context.font = `700 ${particle.size}px Arial, sans-serif`;
-            context.fillText('T', particle.x, particle.y);
+            const dx = particle.x - pointerX;
+            const dy = particle.y - pointerY;
+            const distance = pointer.active ? Math.hypot(dx, dy) : Infinity;
+            const redBlend = pointer.active ? Math.max(0, 1 - distance / glowRadius) : 0;
+            const hue = ((colorShift + particle.hueOffset) % 360) * (1 - redBlend);
+            const pulse = reducedMotion ? 0.95 : 0.82 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.09;
+            context.globalAlpha = Math.min(1, pulse + redBlend * 0.1);
+            context.fillStyle = `hsl(${hue}, 100%, 66%)`;
+            context.beginPath();
+            context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            context.fill();
         }
 
         context.restore();
