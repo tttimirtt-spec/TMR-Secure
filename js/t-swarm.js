@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         context.textAlign = 'center';
         context.textBaseline = 'middle';
         context.shadowColor = '#39ff14';
-        context.shadowBlur = 10;
+        context.shadowBlur = 16;
 
         const delta = Math.min((time - previousTime) / 16.67 || 1, 2);
         previousTime = time;
@@ -118,16 +118,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const proximity = pointer.active
             ? Math.max(0, 1 - Math.sqrt(nearestDistanceSquared) / glowRadius)
             : 0;
-        const red = Math.round(164 + (255 - 164) * proximity);
-        const green = Math.round(255 + (48 - 255) * proximity);
-        const blue = Math.round(138 + (48 - 138) * proximity);
+        const red = Math.round(150 + (255 - 150) * proximity);
+        const green = Math.round(255 * (1 - proximity));
+        const blue = Math.round(72 * (1 - proximity));
         context.fillStyle = `rgb(${red}, ${green}, ${blue})`;
-        context.shadowColor = proximity > 0.05 ? '#ff3030' : '#39ff14';
-        context.shadowBlur = 6 + proximity * 22;
+        context.shadowColor = proximity > 0.05 ? '#ff0000' : '#39ff14';
+        context.shadowBlur = 16 + proximity * 30;
 
         for (const particle of particles) {
-            const pulse = reducedMotion ? 0.72 : 0.5 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.22;
-            context.globalAlpha = Math.min(1, pulse + proximity * 0.28);
+            const pulse = reducedMotion ? 0.88 : 0.78 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.1;
+            context.globalAlpha = Math.min(1, pulse + proximity * 0.12);
             context.font = `700 ${particle.size}px Arial, sans-serif`;
             context.fillText('T', particle.x, particle.y);
         }

@@ -121,7 +121,7 @@ body {
     justify-self: end;
     width: 100%;
     height: clamp(340px, 42vw, 520px);
-    opacity: 0.78;
+    opacity: 1;
     pointer-events: none;
 }
 .badge {
@@ -357,10 +357,10 @@ body {
         grid-row: 1;
         justify-self: end;
         height: clamp(220px, 55vw, 340px);
-        opacity: 0.65;
+        opacity: 0.9;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .hero-t-swarm { opacity: 0.4; }
+    .hero-t-swarm { opacity: 0.9; }
 }
