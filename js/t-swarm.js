@@ -49,10 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const particleCount = Math.min(targets.length, 8000);
+        const particleCount = 16000;
         particles.length = 0;
         for (let index = 0; index < particleCount; index++) {
-            const target = targets[Math.floor(index * targets.length / particleCount)];
+            const target = targets[Math.floor(index * targets.length / particleCount) % targets.length];
             particles.push({
                 targetX: target.x,
                 targetY: target.y,
