@@ -36,43 +36,45 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.height = Math.round(height * pixelRatio);
         context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
+        const mask = document.createElement('canvas');
+        mask.width = Math.max(1, Math.round(width));
+        mask.height = Math.max(1, Math.round(height));
+        const maskContext = mask.getContext('2d', { willReadFrequently: true });
+        if (!maskContext) return;
+
+        const fontSize = Math.min(height * 0.94, width * 0.96);
+        maskContext.fillStyle = '#fff';
+        maskContext.font = `900 ${fontSize}px Arial, sans-serif`;
+        maskContext.textAlign = 'center';
+        maskContext.textBaseline = 'middle';
+        maskContext.fillText('T', width / 2, height / 2);
+
+        const image = maskContext.getImageData(0, 0, mask.width, mask.height).data;
+        const targets = [];
+        const step = Math.max(1, Math.round(width / 250));
+        for (let y = 0; y < mask.height; y += step) {
+            for (let x = 0; x < mask.width; x += step) {
+                if (image[(y * mask.width + x) * 4 + 3] > 100) {
+                    targets.push({ x, y });
+                }
+            }
+        }
+
         const particleCount = 2000;
-        const armCount = 3;
-        const particlesPerArm = 680;
-        const shapeScale = Math.min(width, height);
+        if (targets.length === 0) return;
         particles.length = 0;
         for (let index = 0; index < particleCount; index++) {
-            let targetX;
-            let targetY;
-            let hueOffset;
-
-            if (index < armCount * particlesPerArm) {
-                const arm = Math.floor(index / particlesPerArm);
-                const progress = (index % particlesPerArm) / (particlesPerArm - 1);
-                const angle = progress * Math.PI * 2.25 + arm * (Math.PI * 2 / armCount);
-                const radius = (0.055 + progress * 0.39) * shapeScale;
-                const spread = (Math.random() - 0.5) * (2 + progress * shapeScale * 0.045);
-                const radialJitter = (Math.random() - 0.5) * shapeScale * 0.018;
-                targetX = width / 2 + Math.cos(angle) * (radius + radialJitter) - Math.sin(angle) * spread;
-                targetY = height / 2 + Math.sin(angle) * (radius + radialJitter) + Math.cos(angle) * spread;
-                hueOffset = arm * 120 + progress * 80;
-            } else {
-                const angle = Math.random() * Math.PI * 2;
-                const radius = Math.sqrt(Math.random()) * shapeScale * 0.11;
-                targetX = width / 2 + Math.cos(angle) * radius;
-                targetY = height / 2 + Math.sin(angle) * radius;
-                hueOffset = Math.random() * 360;
-            }
+            const target = targets[Math.floor(index * targets.length / particleCount) % targets.length];
 
             particles.push({
-                targetX,
-                targetY,
-                x: targetX,
-                y: targetY,
+                targetX: target.x,
+                targetY: target.y,
+                x: target.x,
+                y: target.y,
                 vx: 0,
                 vy: 0,
                 phase: Math.random() * Math.PI * 2,
-                hueOffset,
+                hueOffset: Math.random() * 360,
                 size: 0.7 + Math.random() * 0.55
             });
         }
