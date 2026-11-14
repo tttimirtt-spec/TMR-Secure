@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMR-Secure — Clean, Fast, Protected</title>
+    <meta name="description" content="TMR-Secure finds and removes unwanted programs, cleans junk files and keeps your Windows PC fast.">
+    <meta name="theme-color" content="#050505">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- Preloader -->
+<div class="preloader" id="preloader">
+    <div class="preloader-inner">
+        <div class="preloader-logo">TMR<span>Secure</span></div>
+        <div class="preloader-bar"><span></span></div>
+        <div class="preloader-text">INITIALIZING...</div>
+    </div>
+</div>
+
+<!-- Анимированный фон -->
+<div class="bg-anim" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="grid-overlay"></div>
+</div>
+
+<!-- Шапка сайта -->
+<header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+        <a class="logo" href="#top">
+            <span class="logo-mark">TMR</span>Secure
+            <span class="logo-dot"></span>
+        </a>
+
+        <nav class="site-nav" id="siteNav">
+            <ul>
+                <li><a href="#features" data-i18n="nav_features">Features</a></li>
+                <li><a href="#platforms" data-i18n="nav_platforms">Platforms</a></li>
+                <li><a href="#reviews" data-i18n="nav_reviews">Reviews</a></li>
+                <li><a href="#faq" data-i18n="nav_faq">FAQ</a></li>
+            </ul>
+        </nav>
+
+        <div class="header-right">
+            <div class="lang-picker" id="langPicker">
+                <button class="lang-btn" id="langBtn">
+                    <span class="lang-globe">🌐</span>
+                    <span class="lang-current" id="langCurrent">EN</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <div class="lang-list" id="langList">
+                        <div class="lang-item" data-lang="en">English</div>
+                        <div class="lang-item" data-lang="ru">Русский</div>
+                        <div class="lang-item" data-lang="kz">Қазақша</div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="nav-toggle" id="navToggle" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main id="top">
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container hero-inner">
+            <span class="badge reveal" data-i18n="hero_badge">VERSION 1.0.0 — LATEST UPDATE</span>
+
+            <h1 class="hero-title reveal">
+                <span data-i18n="hero_title_1">TMR-Secure</span><br>
+                <span class="grad" data-i18n="hero_title_2">Clean & Protect</span>
+            </h1>
+
+            <p class="hero-sub reveal">
+                <span id="typewriter"></span><span class="caret"></span>
+            </p>
+
+            <div class="hero-actions reveal">
+                <a href="#" class="btn btn-primary" id="downloadBtn">
+                    <span data-i18n="hero_btn">Download Latest Version</span>
+                    <svg viewBox="0 0 24 24" width="18" height="18"><path fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+                </a>
+            </div>
+
+            <p class="hero-meta reveal" data-i18n="hero_meta">Windows 10 & 11 · 64-bit · ~25 MB</p>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats" id="stats">
+        <div class="container stats-grid">
+            <div class="stat reveal">
+                <div class="stat-value">
+                    <span class="counter" id="downloadCount" data-target="0">0</span><span class="stat-suffix">+</span>
+                </div>
+                <div class="stat-label" data-i18n="stat_downloads">Total Downloads</div>
+            </div>
+            <div class="stat reveal">
+                <div class="stat-value"><span>99.8%</span></div>
+                <div class="stat-label" data-i18n="stat_detection">Detection Rate</div>
+            </div>
+            <div class="stat reveal">
+                <div class="stat-value"><span id="averageRating">0</span>/5</div>
+                <div class="stat-label" data-i18n="stat_rating">User Rating</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Платформы -->
+    <section class="section" id="platforms">
+        <div class="container">
+            <div class="section-head reveal">
+                <h2 data-i18n="platforms_title">Supported Platforms</h2>
+                <p data-i18n="platforms_sub">Where you can install TMR-Secure.</p>
+            </div>
+            <div class="platform-grid">
+                <!-- Windows -->
+                <div class="platform-card reveal">
+                    <div class="platform-icon">🪟</div>
+                    <h3 data-i18n="platform_win">Windows 10 & 11</h3>
+                    <span class="status available" data-i18n="status_available">Available</span>
+                </div>
+                <!-- Linux -->
+                <div class="platform-card reveal">
+                    <div class="platform-icon">🐧</div>
+                    <h3 data-i18n="platform_linux">Linux</h3>
+                    <span class="status dev" data-i18n="status_dev">In Development</span>
+                </div>
+                <!-- Android -->
+                <div class="platform-card reveal">
+                    <div class="platform-icon">🤖</div>
+                    <h3 data-i18n="platform_android">Android</h3>
+                    <span class="status soon" data-i18n="status_2027">Coming 2027</span>
+                </div>
+                <!-- iOS & macOS -->
+                <div class="platform-card reveal">
+                    <div class="platform-icon">🍎</div>
+                    <h3 data-i18n="platform_apple">iOS & macOS</h3>
+                    <span class="status soon" data-i18n="status_2028">Coming 2028</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section section-alt" id="features">
+        <div class="container">
+            <div class="section-head reveal">
+                <h2 data-i18n="features_title">Features</h2>
+                <p data-i18n="features_sub">Everything you need to keep your system secure.</p>
+            </div>
+
+            <div class="cards">
+                <article class="card reveal">
+                    <div class="card-glow"></div>
+                    <div class="card-icon">🛡️</div>
+                    <h3 data-i18n="feat_1_title">Malware Removal</h3>
+                    <p data-i18n="feat_1_desc">Detects and removes viruses...</p>
+                </article>
+                <article class="card reveal">
+                    <div class="card-glow"></div>
+                    <div class="card-icon">⚡</div>
+                    <h3 data-i18n="feat_2_title">Real-time Protection</h3>
+                    <p data-i18n="feat_2_desc">Runs quietly in the background...</p>
+                </article>
+                <article class="card reveal">
+                    <div class="card-glow"></div>
+                    <div class="card-icon">🧹</div>
+                    <h3 data-i18n="feat_3_title">System Cleanup</h3>
+                    <p data-i18n="feat_3_desc">Clears temporary files...</p>
+                </article>
+                <article class="card reveal">
+                    <div class="card-glow"></div>
+                    <div class="card-icon">🚀</div>
+                    <h3 data-i18n="feat_4_title">Lightweight</h3>
+                    <p data-i18n="feat_4_desc">Uses less than 80MB of RAM...</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Отзывы -->
+    <section class="section" id="reviews">
+        <div class="container container-narrow">
+            <div class="section-head reveal">
+                <h2 data-i18n="reviews_title">User Reviews</h2>
+                <p data-i18n="reviews_sub">What people say about TMR-Secure.</p>
+            </div>
+
+            <!-- Форма добавления отзыва -->
+            <div class="review-form-container reveal">
+                <h3 data-i18n="review_form_title">Leave a review</h3>
+                <form id="reviewForm">
+                    <div class="form-group">
+                        <input type="text" id="reviewName" required placeholder="Your name" data-i18n-placeholder="form_name">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="star-rating" id="starRating">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                            <span class="star" data-value="4">★</span>
+                            <span class="star" data-value="5">★</span>
+                        </div>
+                        <input type="hidden" id="reviewRating" value="5">
+                    </div>
+
+                    <div class="form-group">
+                        <textarea id="reviewText" required rows="4" placeholder="Your review..." data-i18n-placeholder="form_text"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="submitReviewBtn" data-i18n="form_submit">Submit Review</button>
+                </form>
+            </div>
+
+            <!-- Список отзывов -->
+            <div class="reviews-list" id="reviewsList">
+                <!-- Данные подтянутся из базы -->
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section section-alt" id="faq">
+        <div class="container container-narrow">
+            <div class="section-head reveal">
+                <h2 data-i18n="faq_title">FAQ</h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item reveal">
+                    <button class="faq-q"><span data-i18n="faq_1_q">Is TMR-Secure free?</span><span class="faq-icon"></span></button>
+                    <div class="faq-a"><p data-i18n="faq_1_a">Yes...</p></div>
+                </div>
+                <div class="faq-item reveal">
+                    <button class="faq-q"><span data-i18n="faq_2_q">Does it work on Win 11?</span><span class="faq-icon"></span></button>
+                    <div class="faq-a"><p data-i18n="faq_2_a">Yes...</p></div>
+                </div>
+                <!-- Новый вопрос -->
+                <div class="faq-item reveal">
+                    <button class="faq-q"><span data-i18n="faq_3_q">TMR-Secure have a "Virus"?</span><span class="faq-icon"></span></button>
+                    <div class="faq-a"><p data-i18n="faq_3_a">No, You can check on VirusTotal, or another checkers.</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <p>&copy; <span id="year">2025</span> TMR-Secure. <span data-i18n="footer_copy">Created by Timur Grigoryants.</span></p>
+    </div>
+</footer>
+
+<!-- ========================================== -->
+<!-- СКРИПТ TABRICA (Счетчик, Отзывы) -->
+<!-- ========================================== -->
+<script>
+    const DATABASE_ID = 352;const STATS_TABLE_ID = 515;
+    const REVIEWS_TABLE_ID = 518;
+
+    const STATS_URL = `https://api.tabrica.ru/public/v1/databases/${DATABASE_ID}/tables/${STATS_TABLE_ID}/records`;
+    const REVIEWS_URL = `https://api.tabrica.ru/public/v1/databases/${DATABASE_ID}/tables/${REVIEWS_TABLE_ID}/records`;    const headers = {
+        'Content-Type': 'application/json'
+    };
+
+    // ID полей по умолчанию (на случай, если автоопределение не сработает)
+    let FIELD_DOWNLOADS_ID = '4790';
+    let FIELD_NAME_ID = 'name';
+    let FIELD_TEXT_ID = 'text';
+    let FIELD_RATING_ID = 'rating';
+    let FIELD_DATE_ID = 'date';
+
+    // ==========================================
+    // АВТООПРЕДЕЛЕНИЕ ID ПОЛЕЙ
+    // ==========================================
+    async function autoDetectIds() {
+        try {
+            const resp = await fetch(REVIEWS_URL, { headers });
+            const data = await resp.json();
+            const records = data.data?.records || [];
+
+            if (records.length > 0) {
+                const rec = records[0];
+                const ids = Object.keys(rec)
+                    .filter(k => k !== 'id' && k !== 'created' && k !== 'updated')
+                    .sort((a, b) => Number(a) - Number(b));
+
+                if (ids.length >= 4) {
+                    FIELD_NAME_ID = ids[0];
+                    FIELD_TEXT_ID = ids[1];
+                    FIELD_RATING_ID = ids[2];
+                    FIELD_DATE_ID = ids[3];
+                }
+            }
+        } catch (e) {
+            console.warn("Автоопределение не удалось, используем стандартные ID.", e);
+        }
+    }
+
+    // ==========================================
+    // 1. ЛОГИКА СЧЕТЧИКА
+    // ==========================================
+    let currentRecordId = null;
+
+    async function loadDownloadCount() {
+        try {
+            const response = await fetch(STATS_URL, { headers });
+            const result = await response.json();
+            const records = result.data?.records || [];
+
+            if (records.length > 0) {
+                const record = records[0];
+                currentRecordId = record.id;
+                let count = record[FIELD_DOWNLOADS_ID] ?? record['downloads'] ?? 0;
+                count = Number(count) || 0;
+
+                const counterEl = document.getElementById('downloadCount');
+                const locale = window.currentLang === 'ru' ? 'ru-RU' : (window.currentLang === 'kz' ? 'kk-KZ' : 'en-US');
+                if (counterEl) counterEl.textContent = count.toLocaleString(locale);
+            }
+        } catch (error) {}
+    }
+
+    async function incrementDownloadCount() {
+        if (!currentRecordId) return;
+        try {
+            const counterEl = document.getElementById('downloadCount');
+            let currentCount = parseInt(counterEl.textContent.replace(/\D/g, ''), 10) || 0;
+            const newCount = currentCount + 1;
+
+            await fetch(`${STATS_URL}/${currentRecordId}`, {
+                method: 'PATCH',
+                headers: headers,
+                body: JSON.stringify({ data: { [FIELD_DOWNLOADS_ID]: newCount } })
+            });
+
+            const locale = window.currentLang === 'ru' ? 'ru-RU' : (window.currentLang === 'kz' ? 'kk-KZ' : 'en-US');
+            counterEl.textContent = newCount.toLocaleString(locale);
+        } catch (error) {}
+    }
+
+    document.getElementById('downloadBtn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const btn = e.target.closest('.btn');
+        btn.classList.add('loading');
+        const btnSpan = btn.querySelector('span');
+        const originalText = btnSpan.textContent;
+        btnSpan.textContent = window.translations['btn_loading'] || "Запуск...";
+
+        await incrementDownloadCount();
+
+        setTimeout(() => {
+            btn.classList.remove('loading');
+            btnSpan.textContent = originalText;
+        }, 1500);
+    });
+
+    // ==========================================
+    // 2. ЛОГИКА ОТЗЫВОВ И РЕЙТИНГА
+    // ==========================================
+    let currentRating = 5;
+    const stars = document.querySelectorAll('.star');
+    const ratingInput = document.getElementById('reviewRating');
+
+    stars.forEach(star => {
+        star.addEventListener('mouseenter', (e) => {
+            const val = parseInt(e.target.dataset.value);
+            stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value) <= val));
+        });
+        star.addEventListener('click', (e) => {
+            currentRating = parseInt(e.target.dataset.value);
+            ratingInput.value = currentRating;
+            stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value) <= currentRating));
+        });
+    });
+
+    document.getElementById('starRating')?.addEventListener('mouseleave', () => {
+        stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value) <= currentRating));
+    });
+    stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value) <= 5));
+
+    // Функция подсчета среднего рейтинга
+    function updateAverageRating(records) {
+        const ratingEl = document.getElementById('averageRating');
+        if (!ratingEl) return;
+
+        const validRatings = records.map(rec => {
+            const ratingVal = rec[FIELD_RATING_ID] !== undefined ? rec[FIELD_RATING_ID] : rec['rating'];
+            const parsed = parseInt(ratingVal);
+            return isNaN(parsed) ? null : parsed;
+        }).filter(r => r !== null);
+
+        if (validRatings.length >= 5) {
+            const sum = validRatings.reduce((a, b) => a + b, 0);
+            const average = (sum / validRatings.length).toFixed(1);
+
+            const locale = window.currentLang === 'ru' ? 'ru-RU' : (window.currentLang === 'kz' ? 'kk-KZ' : 'en-US');
+            ratingEl.textContent = parseFloat(average).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        } else {
+            ratingEl.textContent = "0";
+        }
+    }
+
+    async function loadReviews() {
+        const listEl = document.getElementById('reviewsList');
+        listEl.innerHTML = '<p style="color:#888; text-align:center;">Загрузка отзывов...</p>';
+
+        try {
+            const resp = await fetch(REVIEWS_URL, { headers });
+            const data = await resp.json();
+            const records = data.data?.records || [];
+
+            // Вызываем подсчет рейтинга
+            updateAverageRating(records);
+
+            listEl.innerHTML = '';
+
+            if (records.length === 0) {
+                listEl.innerHTML = '<p style="color:#888; text-align:center;">Пока нет отзывов. Будьте первым!</p>';
+                return;
+            }
+
+            records.reverse().forEach(rec => {
+                const name = rec[FIELD_NAME_ID] || rec['name'] || 'Аноним';
+                const text = rec[FIELD_TEXT_ID] || rec['text'] || '';
+                const ratingVal = rec[FIELD_RATING_ID] !== undefined ? rec[FIELD_RATING_ID] : rec['rating'];
+                const rating = parseInt(ratingVal) || 0;
+                const date = rec[FIELD_DATE_ID] || rec['date'] || '';
+
+                let starsHtml = '';
+                for(let i=1; i<=5; i++) starsHtml += i <= rating ? '★' : '☆';
+
+                const card = document.createElement('div');
+                card.className = 'review-card';
+                card.innerHTML = `
+                        <div class="review-header">
+                            <span class="review-name"></span>
+                            <span class="review-date"></span>
+                        </div>
+                        <div class="review-stars">${starsHtml}</div>
+                        <p class="review-text"></p>
+                    `;
+
+                card.querySelector('.review-name').textContent = name;
+                card.querySelector('.review-date').textContent = date;
+                card.querySelector('.review-text').textContent = text;
+
+                listEl.appendChild(card);
+            });
+        } catch (err) {
+            console.error("Ошибка загрузки:", err);
+            listEl.innerHTML = '<p style="color:red; text-align:center;">Не удалось загрузить отзывы.</p>';
+        }
+    }
+
+    document.getElementById('reviewForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitReviewBtn');
+        const originalText = btn.textContent;
+        btn.textContent = 'Отправка...';
+        btn.disabled = true;
+
+        const nameVal = document.getElementById('reviewName').value.trim();
+        const textVal = document.getElementById('reviewText').value.trim();
+        const now = new Date();
+        const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth()+1).padStart(2, '0')}.${now.getFullYear()}`;
+
+        try {
+            const res = await fetch(REVIEWS_URL, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    data: {
+                        [FIELD_NAME_ID]: nameVal,
+                        [FIELD_TEXT_ID]: textVal,
+                        [FIELD_RATING_ID]: currentRating,
+                        [FIELD_DATE_ID]: dateStr
+                    }
+                })
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Ошибка сервера: ${errorText}`);
+            }
+
+            document.getElementById('reviewForm').reset();
+            currentRating = 5;
+            stars.forEach(s => s.classList.toggle('active', true));
+            loadReviews();
+        } catch (err) {
+            console.error("Ошибка отправки:", err);
+            alert("Не удалось отправить отзыв. " + err.message);
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    // ЗАПУСК
+    window.addEventListener('DOMContentLoaded', async () => {
+        await autoDetectIds();
+        loadDownloadCount();
+        loadReviews();
+    });
+
+    document.addEventListener('languageChanged', loadDownloadCount);
+</script>
+
+<!-- Основной скрипт (анимации, i18n, прелоадер) -->
+<script src="js/main.js" defer></script>
+</body>
+</html>
