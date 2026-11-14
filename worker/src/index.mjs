@@ -4,8 +4,8 @@ const json = (body, status, origin) =>
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Access-Control-Allow-Origin': origin,
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Review-Delete-Token',
             'Vary': 'Origin'
         }
     });
@@ -27,6 +27,41 @@ function authorizationHeaders(env) {
 
 function tableUrl(env, tableId) {
     return `https://api.tabrica.ru/public/v1/databases/${env.TABRICA_DATABASE_ID}/tables/${tableId}/records`;
+}
+
+async function reviewDeleteKey(env) {
+    const keyMaterial = new TextEncoder().encode(`TMR-Secure review delete:${env.TABRICA_AUTHORIZATION}`);
+    return crypto.subtle.importKey(
+        'raw',
+        keyMaterial,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign', 'verify']
+    );
+}
+
+async function createReviewDeleteToken(env, recordId) {
+    const key = await reviewDeleteKey(env);
+    const message = new TextEncoder().encode(String(recordId));
+    const signature = new Uint8Array(await crypto.subtle.sign('HMAC', key, message));
+    return btoa(String.fromCharCode(...signature)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function verifyReviewDeleteToken(env, recordId, token) {
+    try {
+        const signature = Uint8Array.from(
+            atob(token.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(token.length / 4) * 4, '=')),
+            character => character.charCodeAt(0)
+        );
+        return await crypto.subtle.verify(
+            'HMAC',
+            await reviewDeleteKey(env),
+            signature,
+            new TextEncoder().encode(String(recordId))
+        );
+    } catch {
+        return false;
+    }
 }
 
 async function getReviewFieldIds(env) {
@@ -58,8 +93,8 @@ async function handle(request, env) {
             status: 204,
             headers: {
                 'Access-Control-Allow-Origin': env.SITE_ORIGIN,
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Review-Delete-Token',
                 'Access-Control-Max-Age': '86400',
                 'Vary': 'Origin'
             }
@@ -116,11 +151,15 @@ async function handle(request, env) {
         }
 
         const name = typeof body.name === 'string' ? body.name.trim() : '';
-        const text = typeof body.text === 'string' ? body.text.trim() : '';
+        const reviewText = typeof body.text === 'string' ? body.text.trim() : '';
+        const category = ['review', 'feature', 'missing', 'bug'].includes(body.category)
+            ? body.category
+            : 'review';
         const rating = Number(body.rating);
         const errors = {};
-        if (!name || name.length > 60) errors.name = 'Укажите имя длиной не более 60 символов.';
-        if (text.length < 3 || text.length > 1200) errors.text = 'Отзыв должен содержать от 3 до 1200 символов.';
+        const displayName = name.replace(/\s*\{(админ|admin|модер(?:атор)?|moderator|разраб(?:отчик)?|developer|dev|тестировщик|tester|qa)\}\s*$/iu, '').trim();
+        if (!displayName || name.length > 60) errors.name = 'Укажите имя длиной не более 60 символов.';
+        if (reviewText.length < 3 || reviewText.length > 1200) errors.text = 'Отзыв должен содержать от 3 до 1200 символов.';
         if (!Number.isInteger(rating) || rating < 1 || rating > 5) errors.rating = 'Выберите оценку от 1 до 5 звёзд.';
         if (Object.keys(errors).length) {
             return json({ error: 'Проверьте поля отзыва', details: Object.values(errors).join(' '), fields: errors }, 400, env.SITE_ORIGIN);
@@ -134,14 +173,46 @@ async function handle(request, env) {
             body: JSON.stringify({
                 data: {
                     [fields.name]: name,
-                    [fields.text]: text,
+                    [fields.text]: `[[TMR_CATEGORY:${category}]]\n${reviewText}`,
                     [fields.rating]: rating,
                     [fields.date]: date
                 }
             })
         });
         if (!upstream.ok) throw new Error(`Tabrica returned ${upstream.status}`);
-        return json(await upstream.json(), 201, env.SITE_ORIGIN);
+        const result = await upstream.json();
+        const record = result?.data?.record ?? result?.data ?? result?.record;
+        const createdRecords = recordsFrom(result);
+        const recordId = record?.id ?? createdRecords[0]?.id ?? result?.id;
+        if (recordId === undefined || recordId === null) {
+            throw new Error('Tabrica did not return the created review ID');
+        }
+        return json({
+            recordId: String(recordId),
+            deleteToken: await createReviewDeleteToken(env, recordId)
+        }, 201, env.SITE_ORIGIN);
+    }
+
+    const deleteReviewMatch = path.match(/^\/reviews\/([^/]+)$/);
+    if (request.method === 'DELETE' && deleteReviewMatch) {
+        const recordId = decodeURIComponent(deleteReviewMatch[1]);
+        const suppliedToken = request.headers.get('X-Review-Delete-Token') || '';
+        if (!await verifyReviewDeleteToken(env, recordId, suppliedToken)) {
+            return json({ error: 'Review deletion is not authorized on this device' }, 403, env.SITE_ORIGIN);
+        }
+
+        const response = await fetch(
+            `${tableUrl(env, env.TABRICA_REVIEWS_TABLE_ID)}/${encodeURIComponent(recordId)}`,
+            { method: 'DELETE', headers: authorizationHeaders(env) }
+        );
+        if (!response.ok) throw new Error(`Tabrica returned ${response.status}`);
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': env.SITE_ORIGIN,
+                'Vary': 'Origin'
+            }
+        });
     }
 
     return json({ error: 'Not found' }, 404, env.SITE_ORIGIN);

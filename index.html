@@ -195,6 +195,7 @@
             <div class="section-head reveal">
                 <h2 data-i18n="reviews_title">User Reviews</h2>
                 <p data-i18n="reviews_sub">What people say about TMR-Secure.</p>
+                <p class="review-role-disclaimer" data-i18n="role_disclaimer">Роли в имени указаны авторами и не проверены.</p>
             </div>
 
             <!-- Форма добавления отзыва -->
@@ -203,6 +204,16 @@
                 <form id="reviewForm">
                     <div class="form-group">
                         <input type="text" id="reviewName" required maxlength="60" placeholder="Your name" data-i18n-placeholder="form_name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reviewCategory" data-i18n="review_category">Review type</label>
+                        <select id="reviewCategory">
+                            <option value="review" data-i18n="category_review">Review</option>
+                            <option value="feature" data-i18n="category_feature">Feature request</option>
+                            <option value="missing" data-i18n="category_missing">Missing feature</option>
+                            <option value="bug" data-i18n="category_bug">Bug report</option>
+                        </select>
                     </div>
 
                     <div class="form-group">
@@ -276,6 +287,58 @@
         if (!API_BASE_URL) throw new Error('API is not configured; set the Cloudflare Worker URL in js/config.js');
         return `${API_BASE_URL}${path}`;
     };
+    const REVIEW_DELETE_TOKENS_KEY = 'tmr_review_delete_tokens';
+    const REVIEW_GROUP_ORDER = [
+        ['admin', 'group_admin'],
+        ['moderator', 'group_moderator'],
+        ['developer', 'group_developer'],
+        ['tester', 'group_tester'],
+        ['feature', 'group_feature'],
+        ['missing', 'group_missing'],
+        ['bug', 'group_bug'],
+        ['review', 'group_review']
+    ];
+
+    function getReviewDeleteTokens() {
+        try {
+            const tokens = JSON.parse(localStorage.getItem(REVIEW_DELETE_TOKENS_KEY) || '{}');
+            return tokens && typeof tokens === 'object' && !Array.isArray(tokens) ? tokens : {};
+        } catch (error) {
+            console.error('Не удалось прочитать токены удаления отзывов:', error);
+            return {};
+        }
+    }
+
+    function parseReviewName(rawName) {
+        const roleMatch = rawName.match(/\s*\{(админ|admin|модер(?:атор)?|moderator|разраб(?:отчик)?|developer|dev|тестировщик|tester|qa)\}\s*$/iu);
+        if (!roleMatch) return { name: rawName, role: null };
+
+        const roleName = roleMatch[1].toLocaleLowerCase();
+        const role = /^(админ|admin)$/iu.test(roleName) ? 'admin'
+            : /^(модер(?:атор)?|moderator)$/iu.test(roleName) ? 'moderator'
+                : /^(разраб(?:отчик)?|developer|dev)$/iu.test(roleName) ? 'developer'
+                    : 'tester';
+        return { name: rawName.slice(0, roleMatch.index).trim(), role };
+    }
+
+    function parseReviewText(rawText) {
+        const match = rawText.match(/^\[\[TMR_CATEGORY:(review|feature|missing|bug)\]\]\s*\n?/);
+        return {
+            category: match ? match[1] : 'review',
+            text: match ? rawText.slice(match[0].length) : rawText
+        };
+    }
+
+    function saveReviewDeleteToken(recordId, token) {
+        const tokens = getReviewDeleteTokens();
+        tokens[recordId] = token;
+        try {
+            localStorage.setItem(REVIEW_DELETE_TOKENS_KEY, JSON.stringify(tokens));
+        } catch (error) {
+            console.error('Не удалось сохранить токен удаления отзыва:', error);
+            alert('Отзыв отправлен, но браузер не смог сохранить код для его удаления.');
+        }
+    }
 
     // ==========================================
     // 1. ЛОГИКА СЧЕТЧИКА
@@ -402,32 +465,109 @@
                 return;
             }
 
-            records.reverse().forEach(rec => {
-                const name = rec[FIELD_NAME_ID] || rec['name'] || 'Аноним';
-                const text = rec[FIELD_TEXT_ID] || rec['text'] || '';
-                const ratingVal = rec[FIELD_RATING_ID] !== undefined ? rec[FIELD_RATING_ID] : rec['rating'];
-                const rating = parseInt(ratingVal) || 0;
-                const date = rec[FIELD_DATE_ID] || rec['date'] || '';
+            const groups = new Map(REVIEW_GROUP_ORDER.map(([key]) => [key, []]));
+            records.reverse().forEach(record => {
+                const rawName = String(record[FIELD_NAME_ID] || record.name || 'Аноним');
+                const rawText = String(record[FIELD_TEXT_ID] || record.text || '');
+                const { name, role } = parseReviewName(rawName);
+                const { category, text } = parseReviewText(rawText);
+                groups.get(role || category).push({ record, name, role, category, text });
+            });
 
-                let starsHtml = '';
-                for(let i=1; i<=5; i++) starsHtml += i <= rating ? '★' : '☆';
+            const deleteTokens = getReviewDeleteTokens();
+            REVIEW_GROUP_ORDER.forEach(([key, titleKey]) => {
+                const items = groups.get(key);
+                if (!items.length) return;
 
-                const card = document.createElement('div');
-                card.className = 'review-card';
-                card.innerHTML = `
-                        <div class="review-header">
-                            <span class="review-name"></span>
-                            <span class="review-date"></span>
-                        </div>
-                        <div class="review-stars">${starsHtml}</div>
-                        <p class="review-text"></p>
-                    `;
+                const group = document.createElement('section');
+                group.className = 'review-group';
+                const heading = document.createElement('h3');
+                heading.className = 'review-group-title';
+                heading.textContent = window.translations[titleKey] || key;
+                group.appendChild(heading);
 
-                card.querySelector('.review-name').textContent = name;
-                card.querySelector('.review-date').textContent = date;
-                card.querySelector('.review-text').textContent = text;
+                items.forEach(({ record, name, role, category, text }) => {
+                    const ratingVal = record[FIELD_RATING_ID] !== undefined ? record[FIELD_RATING_ID] : record.rating;
+                    const rating = Math.min(5, Math.max(0, parseInt(ratingVal, 10) || 0));
+                    const date = record[FIELD_DATE_ID] || record.date || '';
+                    const roleKey = role ? `role_${role}` : null;
+                    const card = document.createElement('article');
+                    card.className = 'review-card';
 
-                listEl.appendChild(card);
+                    const header = document.createElement('div');
+                    header.className = 'review-header';
+                    const identity = document.createElement('div');
+                    identity.className = 'review-identity';
+                    const nameElement = document.createElement('span');
+                    nameElement.className = 'review-name';
+                    nameElement.textContent = name;
+                    identity.appendChild(nameElement);
+
+                    if (role) {
+                        const badge = document.createElement('span');
+                        badge.className = `review-role review-role--${role}`;
+                        badge.textContent = window.translations[roleKey] || role;
+                        badge.title = window.translations.role_unverified || 'Role is self-declared and unverified';
+                        identity.appendChild(badge);
+                    }
+
+                    if (category !== 'review') {
+                        const categoryBadge = document.createElement('span');
+                        categoryBadge.className = 'review-category';
+                        categoryBadge.textContent = window.translations[`category_${category}`] || category;
+                        identity.appendChild(categoryBadge);
+                    }
+                    header.appendChild(identity);
+
+                    const dateElement = document.createElement('span');
+                    dateElement.className = 'review-date';
+                    dateElement.textContent = date;
+                    header.appendChild(dateElement);
+                    card.appendChild(header);
+
+                    const starsElement = document.createElement('div');
+                    starsElement.className = 'review-stars';
+                    starsElement.textContent = `${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}`;
+                    card.appendChild(starsElement);
+
+                    const textElement = document.createElement('p');
+                    textElement.className = 'review-text';
+                    textElement.textContent = text;
+                    card.appendChild(textElement);
+
+                    const recordId = record.id === undefined ? '' : String(record.id);
+                    if (recordId && deleteTokens[recordId]) {
+                        const deleteButton = document.createElement('button');
+                        deleteButton.type = 'button';
+                        deleteButton.className = 'review-delete';
+                        deleteButton.textContent = window.translations.delete_review || 'Delete my review';
+                        deleteButton.addEventListener('click', async () => {
+                            if (!confirm(window.translations.confirm_delete_review || 'Delete this review from this device?')) return;
+                            deleteButton.disabled = true;
+                            try {
+                                const response = await fetch(API_URL(`/reviews/${encodeURIComponent(recordId)}`), {
+                                    method: 'DELETE',
+                                    headers: { 'X-Review-Delete-Token': deleteTokens[recordId] }
+                                });
+                                if (!response.ok) {
+                                    const error = await response.json();
+                                    throw new Error(error.error || `API returned ${response.status}`);
+                                }
+                                delete deleteTokens[recordId];
+                                localStorage.setItem(REVIEW_DELETE_TOKENS_KEY, JSON.stringify(deleteTokens));
+                                await loadReviews();
+                            } catch (error) {
+                                console.error('Не удалось удалить отзыв:', error);
+                                alert(`Не удалось удалить отзыв: ${error.message}`);
+                                deleteButton.disabled = false;
+                            }
+                        });
+                        card.appendChild(deleteButton);
+                    }
+
+                    group.appendChild(card);
+                });
+                listEl.appendChild(group);
             });
         } catch (err) {
             console.error("Ошибка загрузки:", err);
@@ -444,6 +584,7 @@
 
         const nameVal = document.getElementById('reviewName').value.trim();
         const textVal = document.getElementById('reviewText').value.trim();
+        const category = document.getElementById('reviewCategory').value;
 
         try {
             const res = await fetch(API_URL('/reviews'), {
@@ -452,13 +593,21 @@
                 body: JSON.stringify({
                     name: nameVal,
                     text: textVal,
-                    rating: currentRating
+                    rating: currentRating,
+                    category
                 })
             });
 
             if (!res.ok) {
                 const error = await res.json();
                 throw new Error(error.details || error.error || `Ошибка сервера: ${res.status}`);
+            }
+
+            const result = await res.json();
+            if (result.recordId && result.deleteToken) {
+                saveReviewDeleteToken(result.recordId, result.deleteToken);
+            } else {
+                console.error('Отзыв сохранён, но сервер не вернул данные для его удаления.');
             }
 
             document.getElementById('reviewForm').reset();
@@ -481,6 +630,7 @@
     });
 
     document.addEventListener('languageChanged', loadDownloadCount);
+    document.addEventListener('languageChanged', loadReviews);
 </script>
 
 <!-- Основной скрипт (анимации, i18n, прелоадер) -->

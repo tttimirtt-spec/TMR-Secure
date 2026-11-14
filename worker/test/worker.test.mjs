@@ -51,6 +51,7 @@ test('validates reviews and writes them using the detected Tabrica fields', asyn
     globalThis.fetch = async (url, options) => {
         calls.push({ url: String(url), options });
         if (options.method === 'POST') return Response.json({ data: { id: 'new-review' } });
+        if (options.method === 'DELETE') return Response.json({ data: { deleted: true } });
         return Response.json({
             data: {
                 records: [{ id: '1', created: '', updated: '', '120': '', '121': '', '122': '', '123': '' }]
@@ -68,16 +69,36 @@ test('validates reviews and writes them using the detected Tabrica fields', asyn
 
     const response = await worker.fetch(request('/reviews', {
         method: 'POST',
-        body: { name: 'Test', text: 'Great app', rating: 5 }
+        body: { name: 'Test {Админ}', text: 'Great app', rating: 5, category: 'feature' }
     }), env);
     assert.equal(response.status, 201);
     assert.equal(calls.length, 2);
+    const created = await response.json();
+    assert.equal(created.recordId, 'new-review');
+    assert.ok(created.deleteToken);
     assert.deepEqual(JSON.parse(calls[1].options.body).data, {
-        '120': 'Test',
-        '121': 'Great app',
+        '120': 'Test {Админ}',
+        '121': '[[TMR_CATEGORY:feature]]\nGreat app',
         '122': 5,
         '123': new Date().toLocaleDateString('de-DE', { timeZone: 'UTC' })
     });
+
+    const unauthorizedDelete = await worker.fetch(request('/reviews/new-review', {
+        method: 'DELETE'
+    }), env);
+    assert.equal(unauthorizedDelete.status, 403);
+    assert.equal(calls.length, 2);
+
+    const ownerDeletionRequest = new Request('https://api.example/reviews/new-review', {
+        method: 'DELETE',
+        headers: {
+            Origin: env.SITE_ORIGIN,
+            'X-Review-Delete-Token': created.deleteToken
+        }
+    });
+    const ownerDeletion = await worker.fetch(ownerDeletionRequest, env);
+    assert.equal(ownerDeletion.status, 204);
+    assert.equal(calls[2].options.method, 'DELETE');
 });
 
 test('reports missing Tabrica credentials without contacting the upstream API', async () => {
