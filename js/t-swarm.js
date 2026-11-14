@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const image = maskContext.getImageData(0, 0, mask.width, mask.height).data;
         const targets = [];
-        const step = Math.max(2, Math.round(width / 150));
+        const step = Math.max(1, Math.round(width / 250));
         for (let y = 0; y < mask.height; y += step) {
             for (let x = 0; x < mask.width; x += step) {
                 if (image[(y * mask.width + x) * 4 + 3] > 100) {
@@ -49,11 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const maxParticles = 2200;
-        const stride = Math.max(1, Math.ceil(targets.length / maxParticles));
+        const particleCount = Math.min(targets.length, 8000);
         particles.length = 0;
-        for (let index = 0; index < targets.length; index += stride) {
-            const target = targets[index];
+        for (let index = 0; index < particleCount; index++) {
+            const target = targets[Math.floor(index * targets.length / particleCount)];
             particles.push({
                 targetX: target.x,
                 targetY: target.y,
