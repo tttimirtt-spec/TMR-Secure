@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const particleCount = 16000;
+        const particleCount = Math.min(targets.length, 2400);
         particles.length = 0;
         for (let index = 0; index < particleCount; index++) {
             const target = targets[Math.floor(index * targets.length / particleCount) % targets.length];
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 vx: 0,
                 vy: 0,
                 phase: Math.random() * Math.PI * 2,
-                size: 1.8 + Math.random() * 1.2
+                size: 1.4 + Math.random() * 1.1
             });
         }
 
