@@ -1,0 +1,11 @@
+name = "tmr-secure-api"
+main = "src/index.mjs"
+compatibility_date = "2026-11-14"
+workers_dev = true
+
+[vars]
+SITE_ORIGIN = "https://tttimirtt-spec.github.io"
+TABRICA_DATABASE_ID = "352"
+TABRICA_STATS_TABLE_ID = "515"
+TABRICA_REVIEWS_TABLE_ID = "518"
+TABRICA_DOWNLOADS_FIELD_ID = "4790"

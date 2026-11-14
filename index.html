@@ -265,94 +265,60 @@
 <!-- ========================================== -->
 <!-- СКРИПТ TABRICA (Счетчик, Отзывы) -->
 <!-- ========================================== -->
+<script src="js/config.js"></script>
 <script>
-    const DATABASE_ID = 352;const STATS_TABLE_ID = 515;
-    const REVIEWS_TABLE_ID = 518;
-
-    const STATS_URL = `https://api.tabrica.ru/public/v1/databases/${DATABASE_ID}/tables/${STATS_TABLE_ID}/records`;
-    const REVIEWS_URL = `https://api.tabrica.ru/public/v1/databases/${DATABASE_ID}/tables/${REVIEWS_TABLE_ID}/records`;    const headers = {
-        'Content-Type': 'application/json'
-    };
-
-    // ID полей по умолчанию (на случай, если автоопределение не сработает)
-    let FIELD_DOWNLOADS_ID = '4790';
     let FIELD_NAME_ID = 'name';
     let FIELD_TEXT_ID = 'text';
     let FIELD_RATING_ID = 'rating';
     let FIELD_DATE_ID = 'date';
-
-    // ==========================================
-    // АВТООПРЕДЕЛЕНИЕ ID ПОЛЕЙ
-    // ==========================================
-    async function autoDetectIds() {
-        try {
-            const resp = await fetch(REVIEWS_URL, { headers });
-            const data = await resp.json();
-            const records = data.data?.records || [];
-
-            if (records.length > 0) {
-                const rec = records[0];
-                const ids = Object.keys(rec)
-                    .filter(k => k !== 'id' && k !== 'created' && k !== 'updated')
-                    .sort((a, b) => Number(a) - Number(b));
-
-                if (ids.length >= 4) {
-                    FIELD_NAME_ID = ids[0];
-                    FIELD_TEXT_ID = ids[1];
-                    FIELD_RATING_ID = ids[2];
-                    FIELD_DATE_ID = ids[3];
-                }
-            }
-        } catch (e) {
-            console.warn("Автоопределение не удалось, используем стандартные ID.", e);
-        }
-    }
+    const API_BASE_URL = (window.TMR_API_BASE_URL || '').replace(/\/+$/, '');
+    const API_URL = path => {
+        if (!API_BASE_URL) throw new Error('API is not configured; set the Cloudflare Worker URL in js/config.js');
+        return `${API_BASE_URL}${path}`;
+    };
 
     // ==========================================
     // 1. ЛОГИКА СЧЕТЧИКА
     // ==========================================
-    let currentRecordId = null;
-
     async function loadDownloadCount() {
         try {
-            const response = await fetch(STATS_URL, { headers });
+            const response = await fetch(API_URL('/stats'));
+            if (!response.ok) throw new Error(`API returned ${response.status}`);
             const result = await response.json();
             const records = result.data?.records || [];
 
             if (records.length > 0) {
                 const record = records[0];
-                currentRecordId = record.id;
-                let count = record[FIELD_DOWNLOADS_ID] ?? record['downloads'] ?? 0;
+                let count = record['4790'] ?? record['downloads'] ?? 0;
                 count = Number(count) || 0;
-
                 const counterEl = document.getElementById('downloadCount');
                 const locale = window.currentLang === 'ru' ? 'ru-RU' : (window.currentLang === 'kz' ? 'kk-KZ' : 'en-US');
                 if (counterEl) counterEl.textContent = count.toLocaleString(locale);
             }
-        } catch (error) {}
+        } catch (error) {
+            console.error('Download counter failed:', error);
+        }
     }
 
     async function incrementDownloadCount() {
-        if (!currentRecordId) return;
         try {
+            const response = await fetch(API_URL('/downloads'), { method: 'POST' });
+            if (!response.ok) throw new Error(`API returned ${response.status}`);
+            const result = await response.json();
             const counterEl = document.getElementById('downloadCount');
-            let currentCount = parseInt(counterEl.textContent.replace(/\D/g, ''), 10) || 0;
-            const newCount = currentCount + 1;
-
-            await fetch(`${STATS_URL}/${currentRecordId}`, {
-                method: 'PATCH',
-                headers: headers,
-                body: JSON.stringify({ data: { [FIELD_DOWNLOADS_ID]: newCount } })
-            });
-
+            const newCount = Number(result.downloads);
+            if (!Number.isFinite(newCount)) throw new Error('Invalid counter response');
             const locale = window.currentLang === 'ru' ? 'ru-RU' : (window.currentLang === 'kz' ? 'kk-KZ' : 'en-US');
-            counterEl.textContent = newCount.toLocaleString(locale);
-        } catch (error) {}
+            if (counterEl) counterEl.textContent = newCount.toLocaleString(locale);
+        } catch (error) {
+            console.error('Download counter update failed:', error);
+        }
     }
 
     document.getElementById('downloadBtn')?.addEventListener('click', async (e) => {
         e.preventDefault();
         const btn = e.target.closest('.btn');
+        if (!btn) return;
         btn.classList.add('loading');
         const btnSpan = btn.querySelector('span');
         const originalText = btnSpan.textContent;
@@ -417,9 +383,21 @@
         listEl.innerHTML = '<p style="color:#888; text-align:center;">Загрузка отзывов...</p>';
 
         try {
-            const resp = await fetch(REVIEWS_URL, { headers });
+            const resp = await fetch(API_URL('/reviews'));
+            if (!resp.ok) throw new Error(`API returned ${resp.status}`);
             const data = await resp.json();
             const records = data.data?.records || [];
+            if (records.length) {
+                const ids = Object.keys(records[0])
+                    .filter(key => !['id', 'created', 'updated'].includes(key))
+                    .sort((a, b) => Number(a) - Number(b));
+                if (ids.length >= 4) {
+                    FIELD_NAME_ID = ids[0];
+                    FIELD_TEXT_ID = ids[1];
+                    FIELD_RATING_ID = ids[2];
+                    FIELD_DATE_ID = ids[3];
+                }
+            }
 
             // Вызываем подсчет рейтинга
             updateAverageRating(records);
@@ -473,20 +451,15 @@
 
         const nameVal = document.getElementById('reviewName').value.trim();
         const textVal = document.getElementById('reviewText').value.trim();
-        const now = new Date();
-        const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth()+1).padStart(2, '0')}.${now.getFullYear()}`;
 
         try {
-            const res = await fetch(REVIEWS_URL, {
+            const res = await fetch(API_URL('/reviews'), {
                 method: 'POST',
-                headers: headers,
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    data: {
-                        [FIELD_NAME_ID]: nameVal,
-                        [FIELD_TEXT_ID]: textVal,
-                        [FIELD_RATING_ID]: currentRating,
-                        [FIELD_DATE_ID]: dateStr
-                    }
+                    name: nameVal,
+                    text: textVal,
+                    rating: currentRating
                 })
             });
 
@@ -510,7 +483,6 @@
 
     // ЗАПУСК
     window.addEventListener('DOMContentLoaded', async () => {
-        await autoDetectIds();
         loadDownloadCount();
         loadReviews();
     });
