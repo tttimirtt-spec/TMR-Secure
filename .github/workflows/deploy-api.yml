@@ -17,6 +17,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TABRICA_AUTHORIZATION: ${{ secrets.TABRICA_AUTHORIZATION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,3 +31,4 @@ jobs:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
+          secrets: ${{ env.TABRICA_AUTHORIZATION != '' && 'TABRICA_AUTHORIZATION' || '' }}
