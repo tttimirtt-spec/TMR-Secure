@@ -106,7 +106,7 @@ body {
     align-items: center;
     gap: 24px;
 }
-.hero-copy { grid-column: 1; grid-row: 1; }
+.hero-copy { grid-column: 1; grid-row: 1; min-width: 0; text-align: left; }
 .hero-t-swarm {
     grid-column: 2;
     grid-row: 1;
@@ -339,17 +339,15 @@ body {
     .site-nav { display: none; }
     .nav-toggle { display: flex; }
     .stats-grid { grid-template-columns: 1fr; gap: 40px; }
-    .hero { padding: 100px 0 60px; text-align: center; }
-    .hero-inner { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .hero { padding: 100px 0 60px; text-align: left; }
+    .hero-inner { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 12px; }
     .hero-copy { grid-column: 1; grid-row: 1; }
-    .hero-title { font-size: clamp(2.5rem, 10vw, 4rem); }
+    .hero-title { font-size: clamp(1.8rem, 7vw, 2.8rem); letter-spacing: -1px; }
     .hero-t-swarm {
-        grid-column: 1;
-        grid-row: 2;
-        justify-self: center;
-        width: min(100%, 360px);
-        height: 280px;
-        opacity: 0.5;
+        grid-column: 2;
+        grid-row: 1;
+        height: clamp(220px, 55vw, 340px);
+        opacity: 0.65;
     }
 }
 
