@@ -10,6 +10,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const magneticButton = document.getElementById('downloadBtn');
     const pointer = { x: -1000, y: -1000, active: false };
     const particles = [];
+    const hueBucketCount = 60;
+    const alphaBucketCount = 3;
+    const drawBuckets = Array.from(
+        { length: hueBucketCount * alphaBucketCount },
+        () => []
+    );
+    const hueStyles = Array.from(
+        { length: hueBucketCount },
+        (_, index) => `hsl(${index * 6}, 100%, 66%)`
+    );
+    const alphaLevels = [0.82, 0.91, 1];
     let width = 0;
     let height = 0;
     let frame = 0;
@@ -72,12 +83,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function draw(time) {
         context.clearRect(0, 0, width, height);
         context.save();
+        for (const bucket of drawBuckets) bucket.length = 0;
 
         const delta = Math.min((time - previousTime) / 16.67 || 1, 2);
         previousTime = time;
         const pointerX = pointer.x;
         const pointerY = pointer.y;
         const radius = Math.max(64, width * 0.19);
+        const radiusSquared = radius * radius;
+        const glowRadius = Math.max(70, width * 0.22);
+        const glowRadiusSquared = glowRadius * glowRadius;
+        const colorShift = reducedMotion ? 0 : time * 0.025;
         let nearestDistanceSquared = Infinity;
 
         for (const particle of particles) {
@@ -89,11 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
             particle.vx += (targetX - particle.x) * 0.018 * delta;
             particle.vy += (targetY - particle.y) * 0.018 * delta;
 
-            if (pointer.active && !reducedMotion) {
+            let distanceSquared = Infinity;
+            if (pointer.active) {
                 const dx = particle.x - pointerX;
                 const dy = particle.y - pointerY;
-                const distance = Math.hypot(dx, dy);
-                if (distance > 0 && distance < radius) {
+                distanceSquared = dx * dx + dy * dy;
+                if (!reducedMotion && distanceSquared > 0 && distanceSquared < radiusSquared) {
+                    const distance = Math.sqrt(distanceSquared);
                     const force = (1 - distance / radius) * 1.8;
                     particle.vx += (dx / distance) * force * delta;
                     particle.vy += (dy / distance) * force * delta;
@@ -107,30 +125,55 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pointer.active) {
                 const dx = particle.x - pointerX;
                 const dy = particle.y - pointerY;
-                nearestDistanceSquared = Math.min(nearestDistanceSquared, dx * dx + dy * dy);
+                distanceSquared = dx * dx + dy * dy;
+                nearestDistanceSquared = Math.min(nearestDistanceSquared, distanceSquared);
             }
+
+            const pointerBlend = pointer.active && distanceSquared < glowRadiusSquared
+                ? 1 - Math.sqrt(distanceSquared / glowRadiusSquared)
+                : 0;
+            const baseHue = (colorShift + particle.hueOffset) % 360;
+            const hue = baseHue * (1 - pointerBlend);
+            const pulse = reducedMotion ? 0.95 : 0.82 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.09;
+            const alpha = Math.min(1, pulse + pointerBlend * 0.1);
+            const alphaIndex = Math.min(
+                alphaBucketCount - 1,
+                Math.round(((alpha - 0.82) / 0.18) * (alphaBucketCount - 1))
+            );
+            const hueIndex = Math.round(hue / 6) % hueBucketCount;
+            drawBuckets[hueIndex * alphaBucketCount + alphaIndex].push(
+                particle.x,
+                particle.y,
+                particle.size
+            );
         }
 
-        const glowRadius = Math.max(70, width * 0.22);
-        const proximity = pointer.active
-            ? Math.max(0, 1 - Math.sqrt(nearestDistanceSquared) / glowRadius)
+        const proximity = pointer.active && nearestDistanceSquared < glowRadiusSquared
+            ? 1 - Math.sqrt(nearestDistanceSquared / glowRadiusSquared)
             : 0;
-        const colorShift = reducedMotion ? 0 : time * 0.025;
         context.shadowColor = proximity > 0.05 ? '#ff102a' : 'rgba(86, 126, 255, 0.9)';
         context.shadowBlur = 7 + proximity * 12;
 
-        for (const particle of particles) {
-            const dx = particle.x - pointerX;
-            const dy = particle.y - pointerY;
-            const distance = pointer.active ? Math.hypot(dx, dy) : Infinity;
-            const redBlend = pointer.active ? Math.max(0, 1 - distance / glowRadius) : 0;
-            const hue = ((colorShift + particle.hueOffset) % 360) * (1 - redBlend);
-            const pulse = reducedMotion ? 0.95 : 0.82 + (Math.sin(time * 0.0015 + particle.phase) + 1) * 0.09;
-            context.globalAlpha = Math.min(1, pulse + redBlend * 0.1);
-            context.fillStyle = `hsl(${hue}, 100%, 66%)`;
-            context.beginPath();
-            context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-            context.fill();
+        for (let hueIndex = 0; hueIndex < hueBucketCount; hueIndex++) {
+            context.fillStyle = hueStyles[hueIndex];
+            for (let alphaIndex = 0; alphaIndex < alphaBucketCount; alphaIndex++) {
+                const bucket = drawBuckets[hueIndex * alphaBucketCount + alphaIndex];
+                if (bucket.length === 0) continue;
+
+                context.globalAlpha = alphaLevels[alphaIndex];
+                context.beginPath();
+                for (let index = 0; index < bucket.length; index += 3) {
+                    context.moveTo(bucket[index] + bucket[index + 2], bucket[index + 1]);
+                    context.arc(
+                        bucket[index],
+                        bucket[index + 1],
+                        bucket[index + 2],
+                        0,
+                        Math.PI * 2
+                    );
+                }
+                context.fill();
+            }
         }
 
         context.restore();
