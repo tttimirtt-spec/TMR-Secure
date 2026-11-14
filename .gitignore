@@ -1,3 +1,4 @@
 .idea/
 *.iml
-app/
+app/*
+!app/TMR-Secure.exe

@@ -30,6 +30,8 @@ jobs:
           mkdir _site
           cp index.html _site/
           cp -r css js _site/
+          mkdir -p _site/app
+          cp app/TMR-Secure.exe _site/app/
           touch _site/.nojekyll
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
